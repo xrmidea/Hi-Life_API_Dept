@@ -75,7 +75,7 @@ namespace Hi_Life_API_Dept
                                             break;
                                         case TransactionStatus.Fail:
                                             //新增、更新資料有錯誤 則新增一筆detail
-                                            dataSync.CreateDataSyncDetailForCRM(row.GetCell(0).NumericCellValue.ToString(), row.GetCell(13) + row.GetCell(15).NumericCellValue.ToString(), transactionType, transactionStatus);
+                                            dataSync.CreateDataSyncDetailForCRM(row.GetCell(0).ToString(), row.GetCell(13).ToString() + row.GetCell(15).ToString(), transactionType, transactionStatus);
                                             fail++;
                                             break;
                                         default:

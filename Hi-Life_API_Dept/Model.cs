@@ -16,6 +16,7 @@ namespace Hi_Life_API_Dept
 
         List<Entity> deptList;
         List<Entity> storeInformationList;
+        List<Entity> finish;
 
         List<OptionMetadata> new_6;
         List<OptionMetadata> new_5;
@@ -43,6 +44,7 @@ namespace Hi_Life_API_Dept
         {
             deptList = Lookup.RetrieveEntityAllRecord("new_dept", new String[] { "new_stonenumber" });
             storeInformationList = Lookup.RetrieveEntityAllRecord("new_storeinformation", new String[] { "new_name" });
+            finish = new List<Entity>();
 
             new_6 = OptionSet.GetoptionsetText("new_dept", "new_6");
             new_5 = OptionSet.GetoptionsetText("new_dept", "new_5");
@@ -80,8 +82,7 @@ namespace Hi_Life_API_Dept
         {
             try
             {
-                var value = row.GetCell(0).CellType == CellType.Numeric ? row.GetCell(0).NumericCellValue.ToString() : row.GetCell(0).StringCellValue;
-                var smaeStronenumberList = (from s in deptList where ((EntityReference)s["new_stonenumber"]).Name.ToString() == value select s).ToList();
+                var smaeStronenumberList = (from s in deptList where ((EntityReference)s["new_stonenumber"]).Name.ToString() == row.GetCell(0).ToString() select s).ToList();
                 foreach (var s in smaeStronenumberList)
                 {
                     service.Delete("new_dept", s.Id);
@@ -99,9 +100,9 @@ namespace Hi_Life_API_Dept
         }
         public TransactionStatus CreateForCRM(IRow row)
         {
-            return AddAttributeForRecord(row, Guid.Empty);
+            return AddAttributeForRecord(row);
         }
-        private TransactionStatus AddAttributeForRecord(IRow row, Guid entityId)
+        private TransactionStatus AddAttributeForRecord(IRow row)
         {
             try
             {
@@ -113,7 +114,7 @@ namespace Hi_Life_API_Dept
                 for (int i = 0; i < fieldArray.Length; i++)
                 {
                     cell = row.GetCell(i);
-                    if (cell == null)
+                    if (cell == null || cell.ToString() == "")
                         entity[fieldArray[i]] = null;
                     else
                     {
@@ -123,17 +124,30 @@ namespace Hi_Life_API_Dept
                             /// CRM關聯實體     門市資訊    new_storeinformation
                             /// CRM關聯欄位     店編        new_name
                             /// 
-                            var value = row.GetCell(0).CellType == CellType.Numeric ? row.GetCell(0).NumericCellValue.ToString() : row.GetCell(0).StringCellValue;
-                            var temp = from e in storeInformationList where e["new_name"].ToString() == value select e.Id;
-                            recordGuid = temp.First();
-                            if (recordGuid == Guid.Empty)
+                            var temp = from e in storeInformationList where e["new_name"].ToString() == row.GetCell(0).ToString() select e;
+                            if (!temp.Any())
                             {
                                 EnvironmentSetting.ErrorMsg = "CRM 查無相符合資料 : \n";
                                 EnvironmentSetting.ErrorMsg += "\tCRM實體 : new_storeinformation\n";
                                 Console.WriteLine(EnvironmentSetting.ErrorMsg);
                                 return TransactionStatus.Fail;
                             }
+                            recordGuid = temp.First().Id;
                             entity[fieldArray[i]] = new EntityReference("new_storeinformation", recordGuid);
+
+                            try
+                            {
+                                var check = from f in finish where f["new_name"].ToString() == temp.First()["new_name"].ToString() select f;
+                                if (!check.Any())
+                                {
+                                    finish.AddRange(temp.ToList());
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("店編 : " + temp.First()["new_name"].ToString());
+                                Console.WriteLine(ex.Message);
+                            }
                         }
                         else if (i == 2 || i == 3 || i == 16 || i == 17)
                         {
@@ -148,15 +162,7 @@ namespace Hi_Life_API_Dept
                         }
                         else
                         {
-                            String value = "";
-                            if (cell.CellType == CellType.Numeric)
-                            {
-                                value = cell.NumericCellValue.ToString();
-                            }
-                            else
-                            {
-                                value = cell.StringCellValue;
-                            }
+                            String value = cell.ToString();
 
                             if (i == 4)
                             {
@@ -266,7 +272,7 @@ namespace Hi_Life_API_Dept
                             {
                                 if (i == 7 || i == 11 || i == 14 || i == 15 || i == 19)
                                 {
-                                    entity[fieldArray[i]] = Convert.ToInt32(cell.NumericCellValue);
+                                    entity[fieldArray[i]] = Convert.ToInt32(value);
                                 }
                                 else
                                 {
@@ -281,18 +287,12 @@ namespace Hi_Life_API_Dept
                 }
                 try
                 {
-                    if (entityId == Guid.Empty)
-                        service.Create(entity);
-                    else
-                    {
-                        entity["new_deptid"] = entityId;
-                        service.Update(entity);
-                    }
+                    service.Create(entity);
                     return TransactionStatus.Success;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("店編 : " + row.GetCell(0).NumericCellValue.ToString());
+                    Console.WriteLine("店編 : " + row.GetCell(0).ToString());
                     Console.WriteLine(ex.Message);
                     EnvironmentSetting.ErrorMsg = ex.Message;
                     return TransactionStatus.Fail;
@@ -312,28 +312,27 @@ namespace Hi_Life_API_Dept
             if (EnvironmentSetting.ErrorType == ErrorType.None)
             {
                 deptList = Lookup.RetrieveEntityAllRecord("new_dept", new String[] { "new_stonenumber", "new_9" });
-                storeInformationList = Lookup.RetrieveEntityAllRecord("new_storeinformation", new String[] { "new_name" });
 
                 int success = 0;
                 int fail = 0;
                 int partially = 0;
-                foreach (var s in storeInformationList)
+                foreach (var s in finish)
                 {
+                    Int32 new_gergf = 0;
+                    Int32 new_feert = 0;
+                    Int32 new_gftyu = 0;
+                    Int32 new_fewtbhj = 0;
+                    Int32 new_fewtr = 0;
+                    Int32 new_vbgyuvb = 0;
+                    Int32 new_vbgyumk = 0;
+                    Int32 new_fewtrwqw = 0;
+                    Int32 new_gerqws = 0;
+                    Int32 new_fsetyt = 0;
+                    Int32 new_fwetet = 0;
+                    Int32 new_fwewhj = 0;
+
                     try
                     {
-                        Int32 new_gergf = 0;
-                        Int32 new_feert = 0;
-                        Int32 new_gftyu = 0;
-                        Int32 new_fewtbhj = 0;
-                        Int32 new_fewtr = 0;
-                        Int32 new_vbgyuvb = 0;
-                        Int32 new_vbgyumk = 0;
-                        Int32 new_fewtrwqw = 0;
-                        Int32 new_gerqws = 0;
-                        Int32 new_fsetyt = 0;
-                        Int32 new_fwetet = 0;
-                        Int32 new_fwewhj = 0;
-
                         var list = (from e in deptList where ((EntityReference)e["new_stonenumber"]).Id == s.Id select ((OptionSetValue)e["new_9"]).Value).ToList();
                         foreach (var l in list)
                         {
@@ -373,11 +372,31 @@ namespace Hi_Life_API_Dept
                         entity["new_fwetet"] = new_fwetet;
                         entity["new_fwewhj"] = new_fwewhj;
 
-                        service.Update(entity);
-                        success++;
+                        try
+                        {
+                            service.Update(entity);
+                            success++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("更新失敗");
+                            Console.WriteLine(ex.Message);
+                            EnvironmentSetting.ErrorMsg = "更新失敗\n" + ex.Message;
+                            dataSync.CreateDataSyncDetailForCRM(s["new_name"].ToString(), s["new_name"].ToString(), TransactionType.Update, TransactionStatus.Fail);
+                            fail++;
+
+                            //新增detail錯誤 則結束
+                            if (EnvironmentSetting.ErrorType != ErrorType.None)
+                            {
+                                return;
+                            }
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Console.WriteLine("貨架區有空值");
+                        Console.WriteLine(ex.Message);
+                        EnvironmentSetting.ErrorMsg = "貨架區有空值\n" + ex.Message;
                         dataSync.CreateDataSyncDetailForCRM(s["new_name"].ToString(), s["new_name"].ToString(), TransactionType.Update, TransactionStatus.Fail);
                         fail++;
 
@@ -388,8 +407,8 @@ namespace Hi_Life_API_Dept
                         }
                     }
                 }
+                dataSync.UpdateDataSyncForCRM(success, fail, partially);
             }
         }
-
     }
 }
