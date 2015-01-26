@@ -40,7 +40,7 @@ namespace Hi_Life_API_Dept
 
                         Model model = new Model();
                         model.doModel(sheet.GetRow(0).Cells);
-                        model.deleteAll();
+                        //model.deleteAll();
 
                         if (EnvironmentSetting.ErrorType == ErrorType.None)
                         {
@@ -56,34 +56,38 @@ namespace Hi_Life_API_Dept
                                     TransactionStatus transactionStatus;
                                     TransactionType transactionType;
 
-                                    //create product
+                                    //delete
+                                    model.deleteSameStonenumber(row);
+                                    if (EnvironmentSetting.ErrorType != ErrorType.None)
+                                    {
+                                        break;
+                                    }
+
+                                    //create
                                     transactionType = TransactionType.Insert;
                                     transactionStatus = model.CreateForCRM(row);
 
                                     //create datasyncdetail
-                                    if (EnvironmentSetting.ErrorType == ErrorType.None)
+                                    switch (transactionStatus)
                                     {
-                                        switch (transactionStatus)
-                                        {
-                                            case TransactionStatus.Success:
-                                                success++;
-                                                break;
-                                            case TransactionStatus.Fail:
-                                                //新增、更新資料有錯誤 則新增一筆detail
-                                                dataSync.CreateDataSyncDetailForCRM(row.GetCell(0).NumericCellValue.ToString(), row.GetCell(13) + row.GetCell(15).NumericCellValue.ToString(), transactionType, transactionStatus);
-                                                fail++;
-                                                break;
-                                            default:
-                                                fail++;
-                                                break;
-                                        }
-
-                                        //新增detail錯誤 則結束
-                                        if (EnvironmentSetting.ErrorType != ErrorType.None)
-                                        {
-                                            _logger.Info(EnvironmentSetting.ErrorMsg);
+                                        case TransactionStatus.Success:
+                                            success++;
                                             break;
-                                        }
+                                        case TransactionStatus.Fail:
+                                            //新增、更新資料有錯誤 則新增一筆detail
+                                            dataSync.CreateDataSyncDetailForCRM(row.GetCell(0).NumericCellValue.ToString(), row.GetCell(13) + row.GetCell(15).NumericCellValue.ToString(), transactionType, transactionStatus);
+                                            fail++;
+                                            break;
+                                        default:
+                                            fail++;
+                                            break;
+                                    }
+
+                                    //新增detail錯誤 則結束
+                                    if (EnvironmentSetting.ErrorType != ErrorType.None)
+                                    {
+                                        _logger.Info(EnvironmentSetting.ErrorMsg);
+                                        break;
                                     }
                                 }
                             }
@@ -91,6 +95,15 @@ namespace Hi_Life_API_Dept
                             dataSync.UpdateDataSyncForCRM(success, fail, partially);
                             Console.WriteLine("成功 : " + success);
                             Console.WriteLine("失敗 : " + fail);
+
+                            if (EnvironmentSetting.ErrorType == ErrorType.None)
+                            {
+                                model.CalculateDept(dataSync);
+                                if (EnvironmentSetting.ErrorType != ErrorType.None)
+                                {
+                                    _logger.Info(EnvironmentSetting.ErrorMsg);
+                                }
+                            }
                         }
                     }
                     catch (Exception ex)
